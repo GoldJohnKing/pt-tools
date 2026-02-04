@@ -38,7 +38,7 @@ async function toggleEnabled(name: string) {
 }
 
 async function deleteSite(name: string) {
-  if (["springsunday", "hdsky", "mteam"].includes(name.toLowerCase())) {
+  if (["springsunday", "hdsky", "mteam", "ourbits"].includes(name.toLowerCase())) {
     ElMessage.warning("预置站点不可删除");
     return;
   }
@@ -217,7 +217,7 @@ function getRssCount(site: SiteConfig): number {
                 size="small"
                 text
                 bg
-                :disabled="['springsunday', 'hdsky', 'mteam'].includes(row[0].toLowerCase())"
+                :disabled="['springsunday', 'hdsky', 'mteam', 'ourbits'].includes(row[0].toLowerCase())"
                 @click="deleteSite(row[0])">
                 删除
               </el-button>
