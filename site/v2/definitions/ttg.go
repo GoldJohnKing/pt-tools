@@ -208,6 +208,11 @@ var TTGDefinition = &v2.SiteDefinition{
 		Leechers:        "td.rowfollow:nth-child(7)",
 		Snatched:        "td.rowfollow:nth-child(8)",
 		DiscountIcon:    "img[src*='ico_free.gif'], img[src*='ico_free2up.gif'], img[src*='ico_50pctdown.gif']",
+		DiscountMapping: map[string]v2.DiscountLevel{
+			"ico_free":      v2.DiscountFree,
+			"ico_free2up":   v2.Discount2xFree,
+			"ico_50pctdown": v2.DiscountPercent50,
+		},
 		DiscountEndTime: "span.free_end_time[title], font.free span[title], font.twoupfree span[title]",
 		Category:        "td.rowfollow:nth-child(1) img[alt]",
 		UploadTime:      "td.rowfollow:nth-child(4) span[title]",
