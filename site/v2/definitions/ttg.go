@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path"
 	"regexp"
 	"strings"
 	"time"
@@ -409,14 +410,16 @@ func (d *ttgDriver) GetTorrentDetail(ctx context.Context, guid, link string) (*v
 		return nil, v2.ErrParseError
 	}
 
-	// 使用标准 Parser 解析
-	parser := v2.NewNexusPHPParserFromDefinition(d.GetSiteDefinition())
-	detailInfo := parser.ParseAll(res.Document.Selection)
+	doc := res.Document.Selection
 
-	// 特殊处理 TTG 的免费结束时间（如果标准解析未获取到）
-	if detailInfo.DiscountEnd.IsZero() && detailInfo.DiscountLevel != v2.DiscountNone {
-		detailInfo.DiscountEnd = parseTTGDiscountEndTime(res.Document.Selection)
-	}
+	// 使用标准Parser解析非折扣字段
+	parser := v2.NewNexusPHPParserFromDefinition(d.GetSiteDefinition())
+	title, torrentID := parser.ParseTitleAndID(doc)
+	sizeMB := parser.ParseSizeMB(doc)
+	hasHR := parser.ParseHR(doc)
+
+	// 使用TTG自定义方式解析折扣
+	discount, discountEnd := parseTTGDiscount(doc)
 
 	siteID := "ttg"
 	if def := d.GetSiteDefinition(); def != nil {
@@ -424,12 +427,12 @@ func (d *ttgDriver) GetTorrentDetail(ctx context.Context, guid, link string) (*v
 	}
 
 	item := &v2.TorrentItem{
-		ID:              detailInfo.TorrentID,
-		Title:           detailInfo.Title,
-		SizeBytes:       int64(detailInfo.SizeMB * 1024 * 1024),
-		DiscountLevel:   detailInfo.DiscountLevel,
-		DiscountEndTime: detailInfo.DiscountEnd,
-		HasHR:           detailInfo.HasHR,
+		ID:              torrentID,
+		Title:           title,
+		SizeBytes:       int64(sizeMB * 1024 * 1024),
+		DiscountLevel:   discount,
+		DiscountEndTime: discountEnd,
+		HasHR:           hasHR,
 		SourceSite:      siteID,
 	}
 
@@ -476,4 +479,43 @@ func parseTTGDiscountEndTime(doc *goquery.Selection) time.Time {
 	})
 
 	return endTime
+}
+
+// parseTTGDiscount 解析TTG特有的免费种子标记
+// TTG使用图片src属性而非class属性来标记免费种子
+// HTML: <img src="./details_files/ico_free.gif" class="topic">
+func parseTTGDiscount(doc *goquery.Selection) (v2.DiscountLevel, time.Time) {
+	discountMapping := map[string]v2.DiscountLevel{
+		"ico_free":      v2.DiscountFree,
+		"ico_free2up":   v2.Discount2xFree,
+		"ico_50pctdown": v2.DiscountPercent50,
+	}
+
+	var discount v2.DiscountLevel = v2.DiscountNone
+	var endTime time.Time
+
+	// 查找所有可能包含折扣标记的图片
+	doc.Find("img[src*='ico_free'], img[src*='ico_free2up'], img[src*='ico_50pctdown']").EachWithBreak(func(_ int, el *goquery.Selection) bool {
+		src, exists := el.Attr("src")
+		if !exists {
+			return true
+		}
+
+		// 从src中提取文件名
+		filename := path.Base(src)
+		base := strings.TrimSuffix(filename, path.Ext(filename))
+
+		if level, ok := discountMapping[base]; ok {
+			discount = level
+			return false
+		}
+		return true
+	})
+
+	// 解析结束时间
+	if discount != v2.DiscountNone {
+		endTime = parseTTGDiscountEndTime(doc)
+	}
+
+	return discount, endTime
 }
