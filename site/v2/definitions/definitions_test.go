@@ -229,6 +229,62 @@ func TestOurBitsDefinition(t *testing.T) {
 	}
 }
 
+func TestTTGDefinition(t *testing.T) {
+	// Verify TTG definition is registered
+	def, ok := v2.GetDefinitionRegistry().Get("ttg")
+	if !ok {
+		t.Fatal("TTG definition not found in registry")
+	}
+
+	// Verify basic properties
+	if def.Name != "TTG" {
+		t.Errorf("Name = %q, want %q", def.Name, "TTG")
+	}
+	if def.Schema != "NexusPHP" {
+		t.Errorf("Schema = %q, want %q", def.Schema, "NexusPHP")
+	}
+	if len(def.URLs) == 0 || def.URLs[0] != "https://totheglory.im/" {
+		t.Errorf("URLs = %v, want [https://totheglory.im/]", def.URLs)
+	}
+
+	// Verify UserInfo config
+	if def.UserInfo == nil {
+		t.Fatal("UserInfo should not be nil")
+	}
+	if len(def.UserInfo.Process) != 3 {
+		t.Errorf("UserInfo.Process steps = %d, want 3", len(def.UserInfo.Process))
+	}
+
+	// Verify LevelRequirements (12 levels + VIP)
+	if len(def.LevelRequirements) != 13 {
+		t.Errorf("LevelRequirements count = %d, want 13", len(def.LevelRequirements))
+	}
+
+	// Verify hard drive unit level names
+	expectedLevels := []string{"Byte", "KiloByte", "MegaByte", "GigaByte", "TeraByte", "PetaByte", "ExaByte", "ZettaByte", "YottaByte", "BrontoByte", "NonaByte", "DoggaByte", "VIP"}
+	for i, expected := range expectedLevels {
+		if i >= len(def.LevelRequirements) {
+			break
+		}
+		if def.LevelRequirements[i].Name != expected {
+			t.Errorf("LevelRequirements[%d].Name = %q, want %q", i, def.LevelRequirements[i].Name, expected)
+		}
+	}
+
+	// Verify DetailParser config
+	if def.DetailParser == nil {
+		t.Fatal("DetailParser should not be nil")
+	}
+	if def.DetailParser.TimeLayout != "2006-01-02 15:04" {
+		t.Errorf("DetailParser.TimeLayout = %q, want %q", def.DetailParser.TimeLayout, "2006-01-02 15:04")
+	}
+
+	// Verify CreateDriver is set
+	if def.CreateDriver == nil {
+		t.Error("CreateDriver should not be nil")
+	}
+}
+
 func TestDefinitionUserInfoConfig(t *testing.T) {
 	tests := []struct {
 		siteID       string
@@ -239,6 +295,7 @@ func TestDefinitionUserInfoConfig(t *testing.T) {
 		{"springsunday", 3, true},
 		{"mteam", 4, true},
 		{"ourbits", 3, true},
+		{"ttg", 3, true},
 	}
 
 	registry := v2.GetDefinitionRegistry()
