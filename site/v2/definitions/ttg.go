@@ -200,19 +200,20 @@ var TTGDefinition = &v2.SiteDefinition{
 		},
 	},
 	Selectors: &v2.SiteSelectors{
-		TableRows:       "table.torrents > tbody > tr:has(table.torrentname), table.torrents > tr:has(table.torrentname)",
-		Title:           "table.torrentname a[href*='details.php']",
-		TitleLink:       "table.torrentname a[href*='details.php']",
-		Subtitle:        "table.torrentname td.embedded > span:not(.tags)",
-		Size:            "td.rowfollow:nth-child(5)",
-		Seeders:         "td.rowfollow:nth-child(6)",
-		Leechers:        "td.rowfollow:nth-child(7)",
-		Snatched:        "td.rowfollow:nth-child(8)",
-		DiscountIcon:    "img[src*='ico_free.gif'], img[src*='ico_free2up.gif'], img[src*='ico_50pctdown.gif']",
+		TableRows:    "table.torrents > tbody > tr:has(table.torrentname), table.torrents > tr:has(table.torrentname)",
+		Title:        "table.torrentname a[href*='details.php']",
+		TitleLink:    "table.torrentname a[href*='details.php']",
+		Subtitle:     "table.torrentname td.embedded > span:not(.tags)",
+		Size:         "td.rowfollow:nth-child(5)",
+		Seeders:      "td.rowfollow:nth-child(6)",
+		Leechers:     "td.rowfollow:nth-child(7)",
+		Snatched:     "td.rowfollow:nth-child(8)",
+		DiscountIcon: "img[src*='ico_free.gif'], img[src*='ico_30.gif'], img[src*='ico_half.gif'], img[src*='ico_2x.gif']",
 		DiscountMapping: map[string]v2.DiscountLevel{
-			"ico_free":      v2.DiscountFree,
-			"ico_free2up":   v2.Discount2xFree,
-			"ico_50pctdown": v2.DiscountPercent50,
+			"ico_free": v2.DiscountFree,
+			"ico_30":   v2.DiscountPercent30,
+			"ico_half": v2.DiscountPercent50,
+			"ico_2x":   v2.Discount2xUp,
 		},
 		DiscountEndTime: "span.free_end_time[title], font.free span[title], font.twoupfree span[title]",
 		Category:        "td.rowfollow:nth-child(1) img[alt]",
@@ -324,9 +325,10 @@ var TTGDefinition = &v2.SiteDefinition{
 	DetailParser: &v2.DetailParserConfig{
 		TimeLayout: "2006-01-02 15:04",
 		DiscountMapping: map[string]v2.DiscountLevel{
-			"ico_free":      v2.DiscountFree,
-			"ico_free2up":   v2.Discount2xFree,
-			"ico_50pctdown": v2.DiscountPercent50,
+			"ico_free": v2.DiscountFree,
+			"ico_30":   v2.DiscountPercent30,
+			"ico_half": v2.DiscountPercent50,
+			"ico_2x":   v2.Discount2xUp,
 		},
 		HRKeywords:       []string{}, // TTG不通过常规HR关键词检测
 		TitleSelector:    "h1",
@@ -486,16 +488,17 @@ func parseTTGDiscountEndTime(doc *goquery.Selection) time.Time {
 // HTML: <img src="./details_files/ico_free.gif" class="topic">
 func parseTTGDiscount(doc *goquery.Selection) (v2.DiscountLevel, time.Time) {
 	discountMapping := map[string]v2.DiscountLevel{
-		"ico_free":      v2.DiscountFree,
-		"ico_free2up":   v2.Discount2xFree,
-		"ico_50pctdown": v2.DiscountPercent50,
+		"ico_free": v2.DiscountFree,
+		"ico_30":   v2.DiscountPercent30,
+		"ico_half": v2.DiscountPercent50,
+		"ico_2x":   v2.Discount2xUp,
 	}
 
 	var discount v2.DiscountLevel = v2.DiscountNone
 	var endTime time.Time
 
 	// 查找所有可能包含折扣标记的图片
-	doc.Find("img[src*='ico_free'], img[src*='ico_free2up'], img[src*='ico_50pctdown']").EachWithBreak(func(_ int, el *goquery.Selection) bool {
+	doc.Find("img[src*='ico_free'], img[src*='ico_30'], img[src*='ico_half'], img[src*='ico_2x']").EachWithBreak(func(_ int, el *goquery.Selection) bool {
 		src, exists := el.Attr("src")
 		if !exists {
 			return true
