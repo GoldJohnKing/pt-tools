@@ -14,7 +14,9 @@ const form = ref<GlobalSettings>({
   download_limit_enabled: false,
   download_speed_limit: 20,
   torrent_size_gb: 200,
+  min_free_minutes: 30,
   auto_start: false,
+  auto_delete_on_free_end: false,
 });
 
 onMounted(async () => {
@@ -171,6 +173,44 @@ async function save() {
               </el-form-item>
             </el-col>
           </el-row>
+
+          <el-row :gutter="40">
+            <el-col :md="12" :sm="24">
+              <el-form-item label="最短免费时间(分钟)">
+                <el-input-number
+                  v-model="form.min_free_minutes"
+                  :min="0"
+                  :max="1440"
+                  :step="5"
+                  class="w-full" />
+                <div class="form-tip">免费剩余时间少于此值的种子将被跳过，0 表示不限制</div>
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </div>
+
+        <!-- 免费结束管理 -->
+        <div class="form-section settings-section">
+          <div class="form-section-title">
+            <el-icon><Timer /></el-icon>
+            免费结束管理
+          </div>
+          <el-form-item label="免费结束自动删除">
+            <el-switch v-model="form.auto_delete_on_free_end" />
+            <div class="form-tip">
+              开启后，免费期结束时未下载完成的种子将自动从下载器中删除（包括数据文件），无需手动操作
+            </div>
+            <el-alert
+              v-if="form.auto_delete_on_free_end"
+              title="注意：开启后将自动删除免费期结束时未完成的种子及其数据文件，此操作不可恢复"
+              type="warning"
+              show-icon
+              :closable="false"
+              class="mt-2" />
+            <div class="form-tip">
+              关闭时，免费期结束的未完成种子仅暂停，可在「暂停任务管理」页面手动恢复或删除
+            </div>
+          </el-form-item>
         </div>
       </el-form>
 

@@ -13,7 +13,9 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	"github.com/sunerpy/pt-tools/core"
 	"github.com/sunerpy/pt-tools/global"
+	"github.com/sunerpy/pt-tools/internal/events"
 	"github.com/sunerpy/pt-tools/models"
 	"github.com/sunerpy/pt-tools/thirdpart/downloader"
 	"github.com/sunerpy/pt-tools/thirdpart/downloader/qbit"
@@ -115,6 +117,28 @@ func PushTorrentToDownloader(ctx context.Context, req PushTorrentRequest) (*Push
 		SavePath:    req.SavePath,
 		Category:    req.Category,
 		Tags:        req.Tags,
+	}
+
+	glOnly, glErr := core.NewConfigStore(global.GlobalDB).GetGlobalOnly()
+	if glErr == nil && glOnly.CleanupDiskProtect && glOnly.CleanupMinDiskSpaceGB > 0 {
+		freeSpace, spaceErr := dl.GetClientFreeSpace(ctx)
+		if spaceErr != nil {
+			sLogger().Warnf("[磁盘保护] 获取磁盘空间失败，继续推送: %v", spaceErr)
+		} else {
+			freeGB := float64(freeSpace) / (1024 * 1024 * 1024)
+			if freeGB < glOnly.CleanupMinDiskSpaceGB {
+				sLogger().Warnf("[磁盘保护] %s: 磁盘空间不足 (%.1f GB < %.1f GB)，跳过推送: site=%s, id=%s",
+					dlSetting.Name, freeGB, glOnly.CleanupMinDiskSpaceGB, req.SiteID, req.TorrentID)
+				if glOnly.CleanupEnabled {
+					events.Publish(events.Event{Type: events.DiskSpaceLow, Source: "push", At: time.Now()})
+				}
+				return &PushTorrentResult{
+					Success:     false,
+					TorrentHash: torrentHash,
+					Message:     fmt.Sprintf("磁盘空间不足 (%.1f GB < %.1f GB)", freeGB, glOnly.CleanupMinDiskSpaceGB),
+				}, nil
+			}
+		}
 	}
 
 	// 推送种子到下载器

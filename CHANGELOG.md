@@ -5,6 +5,147 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0] - 2026-02-21
+
+### Features
+
+- **ui**: 站点管理与首页增加浏览器扩展引导提示
+- 站点管理页禁用的「新增站点」按钮增加 Popover 悬浮提示和 Alert 横幅 - 首页 Dashboard 顶部增加可关闭的扩展推荐横幅 - 引导用户通过浏览器扩展快速适配新站点，提供下载和文档链接 - 移除不再使用的 addSite 函数避免构建报错
+
+## [0.16.0] - 2026-02-21
+
+### Documentation
+
+- **guide**: 重构新站点请求指南为扩展优先
+- 新增方式一：浏览器扩展自动采集（安装、一键采集、导出提交完整步骤）- 原有手动步骤降级为方式二 - 增加两种方式对比表
+
+### Features
+
+- **cleanup**: 支持免费期结束自动删除未完成种子
+  新增全局设置「免费结束自动删除」，开启后免费期结束时未下载完成的种子
+  将自动从下载器删除（含数据文件），无需手动操作。默认关闭。
+
+        - SettingsGlobal 新增 AutoDeleteOnFreeEnd 字段
+        - FreeEndMonitor 新增自动删除分支，仅作用于免费期结束未完成的种子
+        - 系统设置页面新增「免费结束管理」区块含开关和警告提示
+        - 暂停任务页面新增自动删除快捷开关（含悬浮提示）
+        - README 补充功能说明
+
+        Ultraworked with [Sisyphus](https://github.com/code-yeongyu/oh-my-opencode)
+
+### Performance
+
+- **cleanup**: 优化磁盘紧急清理策略
+- 紧急清理目标增加缓冲区（阈值 20% 或至少 10GB），避免清理后立即再次触底 - 新增 DiskSpaceLow 事件，推送检测空间不足时通知清理监控立即执行 - CleanupMonitor 订阅事件总线，收到信号后 3 秒去抖再立即清理 - 仅在自动删种启用时才发送磁盘空间不足信号
+
+      Ultraworked with [Sisyphus](https://github.com/code-yeongyu/oh-my-opencode)
+
+## [0.15.0] - 2026-02-19
+
+### Bug Fixes
+
+- **build**: 修复站点一致性检查脚本引号匹配
+- check-sites.ts 中扩展站点 ID 提取正则兼容双引号和单引号
+- **api**: 修复搜索站点校验在测试环境空指针问题
+- getEnabledSiteIDs 增加 store 空值检查避免测试中 panic
+- **test**: 适配登录接口 JSON 响应变更
+- 登录测试预期状态码从 302 改为 200 以匹配 JSON 请求返回 JSON 响应的行为
+
+### CI/CD
+
+- Bump actions/upload-artifact from 4 to 6 ([#53](https://github.com/sunerpy/pt-tools/issues/53)) ([#53](https://github.com/sunerpy/pt-tools/pull/53))
+  Bumps [actions/upload-artifact](https://github.com/actions/upload-artifact) from 4 to 6. - [Release notes](https://github.com/actions/upload-artifact/releases) - [Commits](https://github.com/actions/upload-artifact/compare/v4...v6)
+
+        ---
+        updated-dependencies:
+        - dependency-name: actions/upload-artifact
+         dependency-version: '6'
+         dependency-type: direct:production
+         update-type: version-update:semver-major
+        ...
+
+### Dependencies (Frontend)
+
+- **pnpm**: Bump vue-router from 4.6.4 to 5.0.2 in /web/frontend ([#57](https://github.com/sunerpy/pt-tools/issues/57)) ([#57](https://github.com/sunerpy/pt-tools/pull/57))
+  Bumps [vue-router](https://github.com/vuejs/router) from 4.6.4 to 5.0.2. - [Release notes](https://github.com/vuejs/router/releases) - [Commits](https://github.com/vuejs/router/compare/v4.6.4...v5.0.2)
+
+        ---
+        updated-dependencies:
+        - dependency-name: vue-router
+         dependency-version: 5.0.2
+         dependency-type: direct:production
+         update-type: version-update:semver-major
+        ...
+
+### Features
+
+- **extension**: 增加 PT Tools Helper 浏览器扩展及配套设施
+- 新增 Chrome/Edge 浏览器扩展 (tools/browser-extension) - 支持 Cookie 自动同步、批量同步、一键采集站点数据 - 内置 337 个 PT 站点域名识别库，支持中英文界面 - 后端新增 PUT /api/sites/{name} 凭据更新和 /api/ping 健康检查 - 后端增加 CORS 支持、JSON 登录响应、搜索前站点启用校验 - 前端搜索前刷新可用站点列表防止搜索禁用站点 - 新增图标生成脚本和站点一致性检查脚本 - 新增扩展构建发布 CI 流程 (ext-v\* tag 触发 Edge Add-ons 发布) - 更新文档：Cookie 配置优先推荐浏览器扩展同步方式
+
+## [0.14.0] - 2026-02-17
+
+### Dependencies (Frontend)
+
+- **pnpm**: Bump @types/node from 25.2.2 to 25.2.3 in /web/frontend ([#100](https://github.com/sunerpy/pt-tools/issues/100)) ([#100](https://github.com/sunerpy/pt-tools/pull/100))
+  Bumps [@types/node](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/HEAD/types/node) from 25.2.2 to 25.2.3. - [Release notes](https://github.com/DefinitelyTyped/DefinitelyTyped/releases) - [Commits](https://github.com/DefinitelyTyped/DefinitelyTyped/commits/HEAD/types/node)
+
+        ---
+        updated-dependencies:
+        - dependency-name: "@types/node"
+         dependency-version: 25.2.3
+         dependency-type: direct:development
+         update-type: version-update:semver-patch
+        ...
+
+- **pnpm**: Bump @vueuse/core from 14.2.0 to 14.2.1 in /web/frontend ([#101](https://github.com/sunerpy/pt-tools/issues/101)) ([#101](https://github.com/sunerpy/pt-tools/pull/101))
+  Bumps [@vueuse/core](https://github.com/vueuse/vueuse/tree/HEAD/packages/core) from 14.2.0 to 14.2.1. - [Release notes](https://github.com/vueuse/vueuse/releases) - [Commits](https://github.com/vueuse/vueuse/commits/v14.2.1/packages/core)
+
+        ---
+        updated-dependencies:
+        - dependency-name: "@vueuse/core"
+         dependency-version: 14.2.1
+         dependency-type: direct:production
+         update-type: version-update:semver-patch
+        ...
+
+- **pnpm**: Bump oxlint from 1.43.0 to 1.48.0 in /web/frontend ([#102](https://github.com/sunerpy/pt-tools/issues/102)) ([#102](https://github.com/sunerpy/pt-tools/pull/102))
+  Bumps [oxlint](https://github.com/oxc-project/oxc/tree/HEAD/npm/oxlint) from 1.43.0 to 1.48.0. - [Release notes](https://github.com/oxc-project/oxc/releases) - [Changelog](https://github.com/oxc-project/oxc/blob/main/npm/oxlint/CHANGELOG.md) - [Commits](https://github.com/oxc-project/oxc/commits/oxlint_v1.48.0/npm/oxlint)
+
+        ---
+        updated-dependencies:
+        - dependency-name: oxlint
+         dependency-version: 1.48.0
+         dependency-type: direct:development
+         update-type: version-update:semver-minor
+        ...
+
+- **pnpm**: Bump marked from 17.0.1 to 17.0.2 in /web/frontend ([#103](https://github.com/sunerpy/pt-tools/issues/103)) ([#103](https://github.com/sunerpy/pt-tools/pull/103))
+  Bumps [marked](https://github.com/markedjs/marked) from 17.0.1 to 17.0.2. - [Release notes](https://github.com/markedjs/marked/releases) - [Commits](https://github.com/markedjs/marked/compare/v17.0.1...v17.0.2)
+
+        ---
+        updated-dependencies:
+        - dependency-name: marked
+         dependency-version: 17.0.2
+         dependency-type: direct:production
+         update-type: version-update:semver-patch
+        ...
+
+- **pnpm**: Bump oxfmt from 0.28.0 to 0.33.0 in /web/frontend ([#104](https://github.com/sunerpy/pt-tools/issues/104)) ([#104](https://github.com/sunerpy/pt-tools/pull/104))
+  Bumps [oxfmt](https://github.com/oxc-project/oxc/tree/HEAD/npm/oxfmt) from 0.28.0 to 0.33.0. - [Release notes](https://github.com/oxc-project/oxc/releases) - [Changelog](https://github.com/oxc-project/oxc/blob/main/npm/oxfmt/CHANGELOG.md) - [Commits](https://github.com/oxc-project/oxc/commits/oxfmt_v0.33.0/npm/oxfmt)
+
+        ---
+        updated-dependencies:
+        - dependency-name: oxfmt
+         dependency-version: 0.33.0
+         dependency-type: direct:development
+         update-type: version-update:semver-minor
+        ...
+
+### Features
+
+- **cleanup**: 磁盘空间保护与自动删种优化 ([#105](https://github.com/sunerpy/pt-tools/issues/105)) ([#105](https://github.com/sunerpy/pt-tools/pull/105))
+- RSS 推送前增加磁盘空间预检查，空间不足时拒绝推送并短路剩余种子 - 手动推送入口同步增加空间预检查 - 修复 SaveGlobalSettings 更新分支丢失 Cleanup/MaxRetry 等字段的问题 - 修复 MaxRetry=0 时所有种子被误判为超过重试次数的问题 - 修复 CanbeFinished 单位换算错误导致免费期判断失效的问题 - 新增最短免费时间阈值(MinFreeMinutes)，跳过免费剩余时间不足的种子 - 自动删种预设方案选择后保留选中状态，页面加载时反向匹配预设 - 自动删种检查增加运行状态日志，缩短启动延迟 - NexusPHP 站点(hdsky/novahd)降低默认请求速率，减少频率限制误判 - CleanupDiskProtect 默认值改为 true - 新增自动删种功能文档，更新配置文档和 FAQ
+
 ## [0.13.0] - 2026-02-12
 
 ### Dependencies (Frontend)

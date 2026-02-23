@@ -66,6 +66,7 @@ func (s *Server) Serve(addr string) error {
 	s.ensureAdminFromEnv()
 	mux.HandleFunc("/login", s.loginHandler)
 	mux.HandleFunc("/logout", s.logoutHandler)
+	mux.HandleFunc("/api/ping", s.apiPing)
 	// JSON APIs
 	mux.HandleFunc("/api/global", s.auth(s.apiGlobal))
 	mux.HandleFunc("/api/qbit", s.auth(s.apiQbit))
@@ -166,6 +167,18 @@ type statusRecorder struct {
 func (s *statusRecorder) WriteHeader(code int) { s.status = code; s.ResponseWriter.WriteHeader(code) }
 func logMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		if strings.HasPrefix(origin, "chrome-extension://") || strings.HasPrefix(origin, "moz-extension://") || strings.HasPrefix(origin, "extension://") {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+		}
+
 		start := time.Now()
 		sr := &statusRecorder{ResponseWriter: w, status: 200}
 		next.ServeHTTP(sr, r)
@@ -247,7 +260,11 @@ func (s *Server) loginHandler(w http.ResponseWriter, r *http.Request) {
 			}()
 		}
 
-		http.Redirect(w, r, "/", http.StatusFound)
+		if isJSONRequest(r) {
+			writeJSON(w, map[string]any{"success": true, "username": u.Username})
+		} else {
+			http.Redirect(w, r, "/", http.StatusFound)
+		}
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
@@ -278,6 +295,11 @@ func readLogin(r *http.Request) (string, string, error) {
 		}
 		return strings.TrimSpace(r.FormValue("username")), strings.TrimSpace(r.FormValue("password")), nil
 	}
+}
+
+func isJSONRequest(r *http.Request) bool {
+	ct := r.Header.Get("Content-Type")
+	return strings.Contains(ct, "application/json")
 }
 
 func (s *Server) logoutHandler(w http.ResponseWriter, r *http.Request) {
@@ -405,13 +427,33 @@ func (s *Server) apiGlobal(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, gs)
 	case http.MethodPost:
 		var req struct {
-			DefaultIntervalMinutes int32  `json:"default_interval_minutes"`
-			DefaultInterval        int64  `json:"default_interval"`
-			DownloadDir            string `json:"download_dir"`
-			DownloadLimitEnabled   bool   `json:"download_limit_enabled"`
-			DownloadSpeedLimit     int    `json:"download_speed_limit"`
-			TorrentSizeGB          int    `json:"torrent_size_gb"`
-			AutoStart              bool   `json:"auto_start"`
+			DefaultIntervalMinutes int32   `json:"default_interval_minutes"`
+			DefaultInterval        int64   `json:"default_interval"`
+			DownloadDir            string  `json:"download_dir"`
+			DownloadLimitEnabled   bool    `json:"download_limit_enabled"`
+			DownloadSpeedLimit     int     `json:"download_speed_limit"`
+			TorrentSizeGB          int     `json:"torrent_size_gb"`
+			MinFreeMinutes         int     `json:"min_free_minutes"`
+			AutoStart              bool    `json:"auto_start"`
+			CleanupEnabled         bool    `json:"cleanup_enabled"`
+			CleanupIntervalMin     int     `json:"cleanup_interval_min"`
+			CleanupScope           string  `json:"cleanup_scope"`
+			CleanupScopeTags       string  `json:"cleanup_scope_tags"`
+			CleanupRemoveData      bool    `json:"cleanup_remove_data"`
+			CleanupConditionMode   string  `json:"cleanup_condition_mode"`
+			CleanupMaxSeedTimeH    int     `json:"cleanup_max_seed_time_h"`
+			CleanupMinRatio        float64 `json:"cleanup_min_ratio"`
+			CleanupMaxInactiveH    int     `json:"cleanup_max_inactive_h"`
+			CleanupSlowSeedTimeH   int     `json:"cleanup_slow_seed_time_h"`
+			CleanupSlowMaxRatio    float64 `json:"cleanup_slow_max_ratio"`
+			CleanupDelFreeExpired  bool    `json:"cleanup_del_free_expired"`
+			CleanupDiskProtect     bool    `json:"cleanup_disk_protect"`
+			CleanupMinDiskSpaceGB  float64 `json:"cleanup_min_disk_space_gb"`
+			CleanupProtectDL       bool    `json:"cleanup_protect_dl"`
+			CleanupProtectHR       bool    `json:"cleanup_protect_hr"`
+			CleanupMinRetainH      int     `json:"cleanup_min_retain_h"`
+			CleanupProtectTags     string  `json:"cleanup_protect_tags"`
+			AutoDeleteOnFreeEnd    bool    `json:"auto_delete_on_free_end"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -433,7 +475,27 @@ func (s *Server) apiGlobal(w http.ResponseWriter, r *http.Request) {
 			DownloadLimitEnabled:   req.DownloadLimitEnabled,
 			DownloadSpeedLimit:     req.DownloadSpeedLimit,
 			TorrentSizeGB:          req.TorrentSizeGB,
+			MinFreeMinutes:         req.MinFreeMinutes,
 			AutoStart:              req.AutoStart,
+			CleanupEnabled:         req.CleanupEnabled,
+			CleanupIntervalMin:     req.CleanupIntervalMin,
+			CleanupScope:           req.CleanupScope,
+			CleanupScopeTags:       req.CleanupScopeTags,
+			CleanupRemoveData:      req.CleanupRemoveData,
+			CleanupConditionMode:   req.CleanupConditionMode,
+			CleanupMaxSeedTimeH:    req.CleanupMaxSeedTimeH,
+			CleanupMinRatio:        req.CleanupMinRatio,
+			CleanupMaxInactiveH:    req.CleanupMaxInactiveH,
+			CleanupSlowSeedTimeH:   req.CleanupSlowSeedTimeH,
+			CleanupSlowMaxRatio:    req.CleanupSlowMaxRatio,
+			CleanupDelFreeExpired:  req.CleanupDelFreeExpired,
+			CleanupDiskProtect:     req.CleanupDiskProtect,
+			CleanupMinDiskSpaceGB:  req.CleanupMinDiskSpaceGB,
+			CleanupProtectDL:       req.CleanupProtectDL,
+			CleanupProtectHR:       req.CleanupProtectHR,
+			CleanupMinRetainH:      req.CleanupMinRetainH,
+			CleanupProtectTags:     req.CleanupProtectTags,
+			AutoDeleteOnFreeEnd:    req.AutoDeleteOnFreeEnd,
 		}
 		if err := s.store.SaveGlobalSettings(gs); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -694,6 +756,8 @@ func (s *Server) apiSiteDetail(w http.ResponseWriter, r *http.Request) {
 			}
 		}()
 		writeJSON(w, map[string]string{"status": "deleted"})
+	case http.MethodPut:
+		s.updateSiteCredential(w, r, sg)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
